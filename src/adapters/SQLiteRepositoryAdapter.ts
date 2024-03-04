@@ -24,17 +24,21 @@ export class SQLiteRepositoryAdapter implements RepositoryPort {
                 'CREATE TABLE IF NOT EXISTS chat(chat_id INTEGER PRIMARY KEY);'
             ),
             this.repository.query(
-                'CREATE TABLE IF NOT EXISTS category(category_id INTEGER PRIMARY KEY AUTOINCREMENT, \
-            FOREIGN KEY (chat_ref) REFERENCES chat(chat_id), \
-            category_name VARCHAR(255), \
-            category_type VARCHAR(255));'
+                'CREATE TABLE IF NOT EXISTS category( \
+                    category_id INTEGER PRIMARY KEY AUTOINCREMENT, \
+                    chat_ref INTEGER, \
+                    category_name TEXT, \
+                    category_type TEXT, \
+                    FOREIGN KEY (chat_ref) REFERENCES chat(chat_id) \
+                );'
             ),
             this.repository.query(
                 'CREATE TABLE IF NOT EXISTS note(note_id INTEGER PRIMARY KEY AUTOINCREMENT, \
-             FOREIGN KEY (category_ref) REFERENCES category(category_id), \
-             note_type VARCHAR(255), \
-             note_content VARCHAR(255), \
-             note_recorded_date INTEGER);'
+                  category_ref INTEGER,  \
+             note_type TEXT, \
+             note_content TEXT, \
+             note_recorded_date INTEGER, \
+             FOREIGN KEY (category_ref) REFERENCES category(category_id));'
             )
         ]
 
@@ -47,13 +51,13 @@ export class SQLiteRepositoryAdapter implements RepositoryPort {
 
         this.createQueries = {
             chat: this.repository.query(
-                'INSERT INTO TABLE chat(chat_id) VALUES (?1)'
+                'INSERT INTO chat(chat_id) VALUES (?1)'
             ),
             category: this.repository.query(
-                'INSERT INTO TABLE category(chat_ref, category_name, category_type) VALUES (?1, ?2, ?3)'
+                'INSERT INTO category(chat_ref, category_name, category_type) VALUES (?1, ?2, ?3)'
             ),
             note: this.repository.query(
-                'INSERT INTO TABLE note(category_ref, note_type, note_content, note_recorded_date) VALUES (?1, ?2, ?3, ?4)'
+                'INSERT INTO note(category_ref, note_type, note_content, note_recorded_date) VALUES (?1, ?2, ?3, ?4)'
             )
         }
 
