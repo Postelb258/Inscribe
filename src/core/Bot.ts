@@ -5,9 +5,13 @@ import type { Command } from './Command'
 import type { HelpBuilder } from './HelpBuilder'
 
 export class Bot {
+    private logger: Logger
+
     private bot: Telegraf<InscribeContext>
     private commands: Command<InscribeContext>[] = []
     constructor(logger: Logger, BOT_TOKEN?: string) {
+        this.logger = logger
+
         if (!BOT_TOKEN) logger.error('BOT_TOKEN must be provided')
 
         this.bot = new Telegraf<InscribeContext>(BOT_TOKEN!)
@@ -39,10 +43,13 @@ export class Bot {
         return this
     }
 
-    run(): void {
+    run(processEndHandler: () => void): void {
         this.bot.launch()
 
         process.once('SIGINT', () => this.bot.stop('SIGINT'))
         process.once('SIGTERM', () => this.bot.stop('SIGTERM'))
+
+        processEndHandler()
+        this.logger.info('Bot is stopped')
     }
 }
