@@ -13,6 +13,7 @@ export class SQLiteRepositoryAdapter implements RepositoryPost {
 
         this.repository = new Database(repositoryPath)
         this.repository.exec('PRAGMA foreign_keys = ON;')
+        this.repository.exec('PRAGMA journal_mode = WAL;')
 
         const createQueries: Statement[] = [
             this.repository.query(
