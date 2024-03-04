@@ -1,7 +1,7 @@
 import type { Category } from '@core/interfaces/Category'
 import type { Note } from '@core/interfaces/Note'
 
-export interface RepositoryPost {
+export interface RepositoryPort {
     createChat(chat_id: number): void
 
     createCategory(chat_ref: number, category: Category): void
