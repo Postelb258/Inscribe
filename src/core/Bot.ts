@@ -46,10 +46,15 @@ export class Bot {
     run(processEndHandler: () => void): void {
         this.bot.launch()
 
-        process.once('SIGINT', () => this.bot.stop('SIGINT'))
-        process.once('SIGTERM', () => this.bot.stop('SIGTERM'))
-
-        processEndHandler()
-        this.logger.info('Bot is stopped')
+        process.once('SIGINT', () => {
+            this.bot.stop('SIGINT')
+            processEndHandler()
+            this.logger.info('Bot is stopped')
+        })
+        process.once('SIGTERM', () => {
+            this.bot.stop('SIGTERM')
+            processEndHandler()
+            this.logger.info('Bot is stopped')
+        })
     }
 }
