@@ -1,13 +1,28 @@
-export class HelpBuilder {
-    private INTRO: string = 'List of the available commands:\n\n';
-    private helpList: string[] = [];
+type HelpMessageList = string[]
 
-    addHelp(helpString: string): HelpBuilder {
-        this.helpList.push(helpString);
-        return this;
+export type CommandHelp = {
+    commandName: string
+    commandHelp: string
+    commandArgs?: string
+}
+
+export class HelpBuilder {
+    helpMessageList: HelpMessageList = [
+        'The list of available commands:\n\n',
+        `/help - displays the available commands\n`
+    ]
+
+    addHelpMessage(commandHelp: CommandHelp): HelpBuilder {
+        this.helpMessageList.push(
+            `/${commandHelp.commandName} ${commandHelp.commandArgs ?? ''} - ${
+                commandHelp.commandHelp
+            }`
+        )
+
+        return this
     }
 
-    get help(): string {
-        return this.INTRO + this.helpList.join('\n');
+    constructHelp(): string {
+        return this.helpMessageList.join('\n')
     }
 }

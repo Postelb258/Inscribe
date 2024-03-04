@@ -1,62 +1,48 @@
-import type { Logger } from 'pino';
-import { Context, Telegraf, type Middleware } from 'telegraf';
-import type { HelpBuilder } from './HelpBuilder';
-
-export interface BotContext extends Context {}
+import type { Logger } from 'pino'
+import type { InscribeContext } from './interfaces/InscribeContext'
+import { Telegraf } from 'telegraf'
+import type { Command } from './Command'
+import type { HelpBuilder } from './HelpBuilder'
 
 export class Bot {
-    private _bot: Telegraf<BotContext>;
-    constructor(logger: Logger) {
-        if (!process.env.BOT_TOKEN) logger.error('BOT_TOKEN must be provided');
+    private bot: Telegraf<InscribeContext>
+    private commands: Command<InscribeContext>[] = []
+    constructor(logger: Logger, BOT_TOKEN?: string) {
+        if (!BOT_TOKEN) logger.error('BOT_TOKEN must be provided')
 
-        // TypeScript does not recognize check of (!process.env.BOT_TOKEN) so ! at the end is required.
-        this._bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
-    }
-    // initHandler is impostor o_0 (no Middleware)
-    registerStartHandler(initHandler: (ctx: BotContext) => void): Bot {
-        this._bot.start((ctx: BotContext) => {
-            initHandler(ctx);
-            ctx.reply(
-                `
-            🔐 Hello, Welcome to Inscribe, where you can keep your journal records confidentially! 📔✨
-
-With this bot, you can securely keep track of various records and create personalized patterns for different types of entries. 📈✒️ Whether it's daily thoughts, goals, or important events 💼
-
-It enables a series of features like:
-📅 Record keeping for events and dates
-📝 Journal entries for your thoughts and goals
-📊 Custom patterns for specific record types
-🧮 Calculations and insights based on your records
-
-FAQ -> @postelb
-`
-            );
-        });
-
-        return this;
+        this.bot = new Telegraf<InscribeContext>(BOT_TOKEN!)
     }
 
-    registerHelpHandler(helpBuilder: HelpBuilder): Bot {
-        this._bot.help((ctx: BotContext) => ctx.reply(helpBuilder.help));
+    registerStartCommand(command: Command<InscribeContext>): Bot {
+        this.commands.push(command)
+        this.bot.start(command.handle)
 
-        return this;
+        return this
     }
 
-    registerCommandHandler(
-        command: string,
-        handler: Middleware<BotContext>
-    ): Bot {
-        this._bot.command(command, handler);
+    registerCommand(command: Command<InscribeContext>): Bot {
+        this.commands.push(command)
+        this.bot.command(command.commandHelp.commandName, command.handle)
 
-        return this;
+        return this
     }
 
-    run(): Bot {
-        this._bot.launch();
+    registerHelp(helpBuilder: HelpBuilder): Bot {
+        this.commands.forEach((cmd: Command<InscribeContext>) => {
+            helpBuilder.addHelpMessage(cmd.commandHelp)
+        })
 
-        process.once('SIGINT', () => this._bot.stop('SIGINT'));
-        process.once('SIGTERM', () => this._bot.stop('SIGTERM'));
+        this.bot.help((ctx: InscribeContext) =>
+            ctx.reply(helpBuilder.constructHelp())
+        )
 
-        return this;
+        return this
+    }
+
+    run(): void {
+        this.bot.launch()
+
+        process.once('SIGINT', () => this.bot.stop('SIGINT'))
+        process.once('SIGTERM', () => this.bot.stop('SIGTERM'))
     }
 }

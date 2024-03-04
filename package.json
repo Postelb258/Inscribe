@@ -1,9 +1,9 @@
 {
   "name": "inscribe",
-  "module": "Entry.ts",
+  "module": "App.ts",
   "type": "module",
   "scripts": {
-    "launch": "bun run src/Entry.ts | pino-pretty"
+    "launch": "bun run src/App.ts | pino-pretty"
   },
   "devDependencies": {
     "@types/bun": "latest"
