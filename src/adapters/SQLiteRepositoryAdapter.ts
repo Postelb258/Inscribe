@@ -1,13 +1,17 @@
 import type { Category } from '@core/interfaces/Category'
 import type { Note } from '@core/interfaces/Note'
-import type { RepositoryPost } from '@ports/RepositoryPort'
+import type { RepositoryPort } from '@ports/RepositoryPort'
 
 import { Database, Statement } from 'bun:sqlite'
 import type { Logger } from 'pino'
 
-export class SQLiteRepositoryAdapter implements RepositoryPost {
+type DataTypes = 'chat' | 'category' | 'note'
+
+export class SQLiteRepositoryAdapter implements RepositoryPort {
     logger: Logger
     repository: Database
+
+    createQueries: Record<DataTypes, Statement>
     constructor(logger: Logger, repositoryPath: string) {
         this.logger = logger
 
@@ -15,7 +19,7 @@ export class SQLiteRepositoryAdapter implements RepositoryPost {
         this.repository.exec('PRAGMA foreign_keys = ON;')
         this.repository.exec('PRAGMA journal_mode = WAL;')
 
-        const createQueries: Statement[] = [
+        const initQueries: Statement[] = [
             this.repository.query(
                 'CREATE TABLE IF NOT EXISTS chat(chat_id INTEGER PRIMARY KEY);'
             ),
@@ -34,47 +38,51 @@ export class SQLiteRepositoryAdapter implements RepositoryPost {
             )
         ]
 
-        createQueries.forEach((query: Statement) => {
+        initQueries.forEach((query: Statement) => {
             query.run()
             query.finalize()
         })
 
         this.logger.info('Tables initialized')
+
+        this.createQueries = {
+            chat: this.repository.query(
+                'INSERT INTO TABLE chat(chat_id) VALUES (?1)'
+            ),
+            category: this.repository.query(
+                'INSERT INTO TABLE category(chat_ref, category_name, category_type) VALUES (?1, ?2, ?3)'
+            ),
+            note: this.repository.query(
+                'INSERT INTO TABLE note(category_ref, note_type, note_content, note_recorded_date) VALUES (?1, ?2, ?3, ?4)'
+            )
+        }
+
+        this.logger.info('Queries are constructed')
     }
 
     createChat(chat_id: number): void {
-        const q: Statement = this.repository.query(
-            'INSERT INTO TABLE chat(chat_id) VALUES (?)'
-        )
-        q.run(chat_id)
+        this.createQueries.chat.run(chat_id)
 
         this.logger.info(`Chat [chatId: ${chat_id}] created`)
-
-        q.finalize()
     }
     createCategory(chat_ref: number, category: Category): void {
-        const q: Statement = this.repository.query(
-            'INSERT INTO TABLE category(chat_ref, category_name, category_type) VALUES (?, ?, ?)'
-        )
-        q.run(chat_ref, category.name, category.type)
+        this.createQueries.category.run(chat_ref, category.name, category.type)
 
         this.logger.info(
             `Category [type: ${category.type}; name: ${category.name}] created`
         )
-
-        q.finalize()
     }
     createNote(category_ref: number, note: Note): void {
-        const q: Statement = this.repository.query(
-            'INSERT INTO TABLE note(category_ref, note_type, note_content, note_recorded_date) VALUES (?, ?, ?, ?)'
+        this.createQueries.note.run(
+            category_ref,
+            note.type,
+            note.noteContent,
+            note.recordedDate
         )
-        q.run(category_ref, note.type, note.noteContent, note.recordedDate)
 
         this.logger.info(
             `Note [type: ${note.type}] created at ${note.recordedDate}`
         )
-
-        q.finalize()
     }
     close(): void {
         this.repository.close()
